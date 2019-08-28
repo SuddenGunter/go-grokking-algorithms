@@ -26,9 +26,7 @@ func BinarySearch(list []int, element int) (int, error) {
 		if guess > element {
 			high = mid - 1
 		}
-		{
-			low = mid + 1
-		}
+		low = mid + 1
 	}
 	return -1, errors.New("Not found")
 }
