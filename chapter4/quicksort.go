@@ -21,7 +21,7 @@ func Sort(a []int) []int {
 	}
 
 	a[left], a[right] = a[right], a[left]
-
+	//potentially can be paralleled
 	Sort(a[:left])
 	Sort(a[left+1:])
 
