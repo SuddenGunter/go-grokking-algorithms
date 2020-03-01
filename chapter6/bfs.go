@@ -9,9 +9,17 @@ func BFS(friends map[string][]string) bool {
 	for _, v := range friends["you"] {
 		queue.Enqueue(v)
 	}
+	searched := make(map[string]struct{})
 
 	for !queue.IsEmpty() {
 		potential := queue.Dequeue()
+		_, alreadyChecked := searched[*potential]
+		if alreadyChecked {
+			continue
+		} else {
+			searched[*potential] = struct{}{}
+		}
+
 		if isMangoSeller(*potential) {
 			return true
 		}
