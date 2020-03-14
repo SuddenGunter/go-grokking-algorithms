@@ -1,11 +1,11 @@
 package quicksort
 
 import (
-	"log"
+	"context"
 	"math/rand"
+	"sort"
 	"sync"
 	"sync/atomic"
-	"time"
 )
 
 func Sort(a []int) []int {
@@ -40,29 +40,33 @@ type ConcurrentSorter struct {
 	wg      sync.WaitGroup
 }
 
-func ConcurrentSort(a []int) []int {
+func ConcurrentSort(a []int, c chan []int) []int {
 	sorter := &ConcurrentSorter{
-		jobs: make(chan []int, 1000),
+		jobs: c,
 		wg:   sync.WaitGroup{},
 	}
+	shutdownWg := sync.WaitGroup{}
+	ctx, cancel := context.WithCancel(context.Background())
 	for i := 0; i < 4; i++ {
-		go sorter.Worker()
+		shutdownWg.Add(1)
+		go sorter.Worker(ctx, &shutdownWg)
 	}
 
 	sorter.wg.Add(1)
 	sorter.jobs <- a
 	sorter.wg.Wait()
-
+	cancel()
+	shutdownWg.Wait()
 	return a
 }
-func (sorter *ConcurrentSorter) Worker() {
+func (sorter *ConcurrentSorter) Worker(ctx context.Context, wg *sync.WaitGroup) {
 	func(jobs chan []int) {
 		for {
 			select {
 			case toSort := <-jobs:
 				sortChunk(toSort, jobs, &sorter.wg)
-			case <-time.After(100 * time.Second):
-				log.Fatal("failed")
+			case <-ctx.Done():
+				wg.Done()
 				return
 			}
 		}
@@ -74,7 +78,11 @@ func sortChunk(a []int, jobs chan<- []int, wg *sync.WaitGroup) {
 		wg.Done()
 		return
 	}
-
+	if len(a) < 2000 {
+		sort.Ints(a)
+		wg.Done()
+		return
+	}
 	left, right := 0, len(a)-1
 
 	pivot := rand.Int() % len(a)

@@ -1,10 +1,13 @@
 package quicksort
 
 import (
-	"math"
+	"encoding/gob"
+	"log"
+	"os"
 	"testing"
 )
 
+/*
 func TestSort(t *testing.T) {
 	src := []int{11, 12, 0, -1, math.MinInt64, math.MaxInt64, 10, 2, 2, 2}
 	result := ConcurrentSort(src)
@@ -29,4 +32,52 @@ func Test_Sort(t *testing.T) {
 			t.FailNow()
 		}
 	}
+}*/
+
+// bench
+
+func BenchmarkConcurrentSort(b *testing.B) {
+	b.StopTimer()
+	b.ResetTimer()
+	src := GetData()
+	array := make([]int, 5000000)
+	copy(array, src)
+	jobs := make(chan []int, 10000000)
+	b.StartTimer()
+	for n := 0; n < b.N; n++ {
+		_ = ConcurrentSort(array, jobs)
+		b.StopTimer()
+		copy(array, src)
+		b.StartTimer()
+	}
+}
+
+func BenchmarkSort(b *testing.B) {
+	b.StopTimer()
+	b.ResetTimer()
+	src := GetData()
+	array := make([]int, 5000000)
+	copy(array, src)
+	b.StartTimer()
+	for n := 0; n < b.N; n++ {
+		_ = Sort(array)
+		b.StopTimer()
+		copy(array, src)
+		b.StartTimer()
+	}
+}
+
+func GetData() []int {
+	p := make([]int, 5000000)
+	file, err := os.Open("array.dat")
+	defer file.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	decoder := gob.NewDecoder(file)
+	err = decoder.Decode(&p)
+	if err != nil {
+		panic(err)
+	}
+	return p
 }
